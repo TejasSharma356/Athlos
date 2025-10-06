@@ -2,7 +2,7 @@
 
 Athlos is a gamified fitness web app. Run/walk to trace paths, auto-claim territory on the map, and compete on real-time leaderboards.
 
-## 🚀 Features
+##  Features
 
 - **Real-time GPS Tracking**: Track your runs with live location updates
 - **Territory Claiming**: Claim areas by running/walking paths
@@ -11,7 +11,7 @@ Athlos is a gamified fitness web app. Run/walk to trace paths, auto-claim territ
 - **Real-time Updates**: Live leaderboard updates via WebSocket
 - **Responsive Design**: Mobile-first design optimized for fitness use
 
-## 🗂️ Project Structure
+##  Project Structure
 
 ```
 athlos-fitness-app/
@@ -52,7 +52,7 @@ athlos-fitness-app/
   start.sh / start.bat     # Convenience scripts
 ```
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Backend
 - Spring Boot 3.2.0 (Java 17)
@@ -67,14 +67,14 @@ athlos-fitness-app/
 - Leaflet (via CDN)
 - SockJS + STOMP
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - Java 17 or higher
 - Node.js 18 or higher
 - PostgreSQL 15 with PostGIS extension
 - Docker and Docker Compose (optional)
 
-## 🚀 Quick Start (Docker)
+##  Quick Start (Docker)
 
 1. **Clone the repository**
    ```bash
@@ -92,7 +92,7 @@ athlos-fitness-app/
    - Backend API: http://localhost:8080/api
    - WebSocket: ws://localhost:8080/ws
 
-## 🧑‍💻 Manual Setup
+##  Manual Setup
 
 ### Backend Setup
 
@@ -138,7 +138,7 @@ athlos-fitness-app/
    npm run dev
    ```
 
-## 📱 Try It
+##  Try It
 
 1. Sign up or sign in (sample user: john@example.com / password123)
 2. **Set Goals**: Configure your daily step goals
@@ -167,7 +167,7 @@ athlos-fitness-app/
 - GET `/api/leaderboard/weekly`
 - GET `/api/leaderboard/all-time`
 
-## 🌐 WebSocket
+##  WebSocket
 
 - Subscriptions:
   - `/topic/leaderboard/daily`
@@ -176,7 +176,7 @@ athlos-fitness-app/
 - App destinations:
   - `/app/leaderboard/daily|weekly|all-time`
 
-## 🗄️ Database Schema
+##  Database Schema
 
 ### Users
 - Profiles, daily goal, last_active, current_location (Point, SRID 4326)
@@ -188,14 +188,14 @@ athlos-fitness-app/
 ### Territories
 - polygon (Polygon), area_square_meters, is_active
 
-## 🔒 Security
+##  Security
 
 - Passwords hashed with BCrypt
 - JWT login at `/api/auth/login`
 - Protected routes require `Authorization: Bearer <token>`
 - CORS: http://localhost:3000, http://localhost:5173
 
-## 🚀 Deployment
+##  Deployment
 
 ### Environment Variables (prod)
 
@@ -212,7 +212,7 @@ REACT_APP_API_URL=https://your-api-domain.com/api
 REACT_APP_WS_URL=wss://your-api-domain.com/ws
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -221,7 +221,7 @@ REACT_APP_WS_URL=wss://your-api-domain.com/ws
 5. Submit a pull request
 
 
-## 🆘 Support
+##  Support
 
 For support, please open an issue in the repository or contact the development team.
 
