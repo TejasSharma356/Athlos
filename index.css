@@ -1,0 +1,162 @@
+/* Custom styles for Athlos Fitness App */
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Custom user marker for Leaflet */
+.custom-user-marker {
+  background: #EF4444;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Wave animations for liquid progress */
+@keyframes wave-slow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-400px); }
+}
+
+.animate-wave-slow {
+  animation: wave-slow 10s linear infinite;
+}
+
+@keyframes wave-fast {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-400px); }
+}
+
+.animate-wave-fast {
+  animation: wave-fast 6s linear infinite;
+}
+
+/* Loading animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Fade in animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Slide in animations */
+@keyframes slideInFromTop {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-in-from-top {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Pulse animation for active elements */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Focus styles */
+.focus\:ring-red-500:focus {
+  --tw-ring-color: #ef4444;
+}
+
+.focus\:border-red-500:focus {
+  border-color: #ef4444;
+}
+
+/* Custom button hover effects */
+.btn-hover-scale:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Map container styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+/* Hide Leaflet attribution and zoom controls */
+.leaflet-control-attribution,
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+/* Custom dropdown animations */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Error message styles */
+.error-message {
+  @apply bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-center p-3;
+}
+
+/* Success message styles */
+.success-message {
+  @apply bg-green-600/20 border border-green-600 rounded-lg text-green-400 text-center p-3;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
+}

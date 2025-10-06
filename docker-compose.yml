@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: athlos-postgres
+    environment:
+      POSTGRES_DB: athlos_db
+      POSTGRES_USER: athlos_user
+      POSTGRES_PASSWORD: athlos_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - athlos-network
+
+  backend:
+    build: ./backend
+    container_name: athlos-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/athlos_db
+      SPRING_DATASOURCE_USERNAME: athlos_user
+      SPRING_DATASOURCE_PASSWORD: athlos_password
+    depends_on:
+      - postgres
+    networks:
+      - athlos-network
+
+  frontend:
+    build: 
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: athlos-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8080/api
+      REACT_APP_WS_URL: ws://localhost:8080/ws
+    depends_on:
+      - backend
+    networks:
+      - athlos-network
+
+volumes:
+  postgres_data:
+
+networks:
+  athlos-network:
+    driver: bridge
+
