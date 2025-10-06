@@ -89,9 +89,7 @@ athlos-fitness-app/
 
 
 3. **Access the application**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8080/api
-   - WebSocket: ws://localhost:8080/ws
+   -https://athlos-git-main-tejas-sharmas-projects-30c2f05a.vercel.app
 
 ##  Manual Setup
 
