@@ -147,7 +147,7 @@ athlos-fitness-app/
 5. **Compete**: Check leaderboards and compete with friends
 
 ## 🔧 API Endpoints (summary)
-
+ 
 ### Auth
 - POST `/api/users/register` — register
 - POST `/api/auth/login` — login → returns `{ user, token }`
