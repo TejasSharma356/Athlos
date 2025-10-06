@@ -1,0 +1,7 @@
+{
+  "name": "Athlos Fitness App",
+  "description": "A science-backed workout and fitness tracker with a sleek, dark interface. Features a seamless onboarding experience and personalized goal setting to help you achieve your fitness targets.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
