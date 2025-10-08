@@ -1,47 +1,16 @@
 import React, { useState } from 'react';
 import type { Screen } from '../types';
-import { apiService } from '../src/services/api';
 
 interface SignUpScreenProps {
   onNavigate: (screen: Screen) => void;
-  onUserLogin: (user: any) => void;
-  onGuestLogin: () => void;
+  onSignUp: (name: string, email: string) => void;
 }
 
-const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, onGuestLogin }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onSignUp }) => {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.id]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      await apiService.register(formData.email, formData.password, formData.name);
-      // Immediately log the user in to retrieve token
-      const loggedIn = await apiService.login(formData.email, formData.password);
-      onUserLogin(loggedIn);
-      onNavigate('home');
-    } catch (err) {
-      setError('Failed to create account. Please try again.');
-      console.error('Registration error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   return (
     <div className="relative flex flex-col h-full text-white">
        <div className="absolute inset-0 z-0">
@@ -62,21 +31,14 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, on
         <main className="flex-grow flex flex-col justify-center">
           <h2 className="text-3xl font-bold mb-8 text-center">Create Account</h2>
           
-          {error && (
-            <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-center">
-              {error}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form className="space-y-6">
             <div>
-              <label className="text-sm font-medium text-gray-400" htmlFor="name">Full Name</label>
+              <label className="text-sm font-medium text-gray-400" htmlFor="full-name">Full Name</label>
               <input 
-                id="name" 
+                id="full-name" 
                 type="text" 
-                value={formData.name}
-                onChange={handleInputChange}
-                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
                 placeholder="Your full name"
               />
@@ -86,9 +48,8 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, on
               <input 
                 id="email" 
                 type="email" 
-                value={formData.email}
-                onChange={handleInputChange}
-                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
                 placeholder="email@domain.com"
               />
@@ -98,28 +59,24 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, on
               <input 
                 id="password" 
                 type="password" 
-                value={formData.password}
-                onChange={handleInputChange}
-                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
                 placeholder="********"
               />
             </div>
             
             <button 
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              onClick={() => onSignUp(fullName, email)}
+              className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
             >
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              Sign Up
             </button>
           </form>
         </main>
 
-        <footer className="text-center py-4 space-y-3">
-          <button onClick={onGuestLogin} className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors">
-            Continue as Guest
-          </button>
+        <footer className="text-center py-4">
           <p className="text-gray-400">
             Already have an account?{' '}
             <button onClick={() => onNavigate('signin')} className="font-semibold text-red-400 hover:underline">
