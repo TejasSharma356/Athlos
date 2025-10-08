@@ -1,46 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Screen } from '../types';
 import { GoogleIcon, AppleIcon } from '../components/icons';
-import { apiService } from '../src/services/api';
 
 interface SignInScreenProps {
   onNavigate: (screen: Screen) => void;
-  onUserLogin: (user: any) => void;
-  onGuestLogin: () => void;
+  onSignIn: () => void;
 }
 
-const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onUserLogin, onGuestLogin }) => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.id]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const user = await apiService.login(formData.email, formData.password);
-      localStorage.removeItem('athlos_is_guest');
-      onUserLogin(user);
-      onNavigate('home');
-    } catch (err) {
-      setError('Invalid email or password. Please try again.');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onSignIn }) => {
   return (
     <div className="relative flex flex-col h-full text-white">
       <div className="absolute inset-0 z-0">
@@ -61,44 +28,23 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onUserLogin, on
         <main className="flex-grow flex flex-col justify-center">
           <h2 className="text-3xl font-bold mb-8 text-center">Sign In</h2>
           
-          {error && (
-            <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-center">
-              {error}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form className="space-y-6">
             <div>
               <label className="text-sm font-medium text-gray-400" htmlFor="email">Email</label>
               <input 
                 id="email" 
                 type="email" 
-                value={formData.email}
-                onChange={handleInputChange}
-                required
                 className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
                 placeholder="email@domain.com"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-400" htmlFor="password">Password</label>
-              <input 
-                id="password" 
-                type="password" 
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
-                placeholder="********"
-              />
-            </div>
             
             <button 
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              onClick={onSignIn}
+              className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
             >
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              Continue
             </button>
           </form>
 
@@ -116,9 +62,6 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onUserLogin, on
             <button className="w-full py-4 bg-slate-800/80 rounded-lg font-semibold flex items-center justify-center hover:bg-slate-700/80 transition">
               <AppleIcon className="w-6 h-6 mr-3 text-white" />
               Continue with Apple
-            </button>
-            <button onClick={onGuestLogin} className="w-full py-4 bg-red-600 rounded-lg font-semibold flex items-center justify-center hover:bg-red-700 transition">
-              Continue as Guest
             </button>
           </div>
         </main>
