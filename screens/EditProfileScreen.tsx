@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import type { Screen } from '../types';
+import type { Screen, User } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
+import Avatar from '../components/Avatar';
 
 interface EditProfileScreenProps {
   onNavigate: (screen: Screen) => void;
+  user: User;
+  onSave: (name: string, email: string) => void;
 }
 
-const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => {
-  const [fullName, setFullName] = useState('Alex Johnson');
-  const [email, setEmail] = useState('alex.j@example.com');
+const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate, user, onSave }) => {
+  const [fullName, setFullName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const userAvatarSrc = user.avatar;
 
   const handleSaveChanges = () => {
-    // In a real app, you'd save this data
-    console.log('Saving profile:', { fullName, email });
-    onNavigate('profile'); // Navigate back to profile after saving
+    onSave(fullName, email);
+    onNavigate('profile');
   };
 
   return (
@@ -21,7 +24,7 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => 
       {/* Background */}
        <div className="absolute inset-0 z-0">
         <img 
-          src="https://images.unsplash.com/photo-1744706908605-ac30eb45f98c?q=80&w=2150&auto=format=fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          src="https://images.unsplash.com/photo-1744706908605-ac30eb45f98c?q=80&w=2150&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           alt="A runner on a road at dusk."
           className="w-full h-full object-cover"
         />
@@ -41,10 +44,11 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => 
         <main className="flex-grow p-6 overflow-y-auto">
           <section className="flex flex-col items-center text-center mb-8">
             <div className="relative">
-              <img 
-                src="https://picsum.photos/seed/user/128/128" 
-                alt="User Avatar" 
+              <Avatar
+                name={fullName}
+                src={userAvatarSrc}
                 className="w-24 h-24 rounded-full mb-2 border-4 border-slate-700"
+                textClassName="text-4xl"
               />
               <button className="absolute bottom-2 -right-1 bg-red-600 p-2 rounded-full hover:bg-red-700 transition">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg>
