@@ -4,3 +4,9 @@ export type Screen = 'welcome' | 'signup' | 'signin' | 'personalinfo' | 'goalset
 export interface OnboardingStepProps {
   onNext: () => void;
 }
+
+export type User = {
+  name: string;
+  email: string;
+  avatar?: string;
+};
