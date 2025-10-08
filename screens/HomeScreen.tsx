@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { Screen } from '../types';
+import type { Screen, User } from '../types';
 import { HomeIcon, ChartIcon, BellIcon, UserIcon, SettingsIcon, LogoutIcon, UserPlusIcon, SearchIcon } from '../components/icons';
-import { apiService, LeaderboardEntry } from '../src/services/api';
-import { websocketService } from '../src/services/websocket';
+import Avatar from '../components/Avatar';
 
 interface HomeScreenProps {
   onNavigate: (screen: Screen) => void;
-  user: any;
+  user: User;
+  onLogout: () => void;
 }
 
 const leaderboardData = [
@@ -53,16 +53,16 @@ const LiquidProgress = ({ progress }: { progress: number }) => {
 };
 
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [friendSearchTerm, setFriendSearchTerm] = useState('');
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
-  const [suggestedFriends, setSuggestedFriends] = useState<any[]>([]);
-  const [currentSteps, setCurrentSteps] = useState(0);
-  const [goalSteps, setGoalSteps] = useState(user?.dailyStepGoal || 6000);
-  const [isLoading, setIsLoading] = useState(true);
 
+  const userName = user.name;
+  const userAvatarSrc = user.avatar;
+
+  const currentSteps = 5000;
+  const goalSteps = 6000;
   const progress = Math.min((currentSteps / goalSteps) * 100, 100);
 
   const filteredFriends = useMemo(() => {
@@ -70,75 +70,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
       friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase())
     );
   }, [friendSearchTerm]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load leaderboard data
-        const leaderboard = await apiService.getDailyLeaderboard();
-        setLeaderboardData(leaderboard);
-        
-        // Load suggested friends (exclude current user if available)
-        const friends = await apiService.searchUsers('');
-        const filtered = user ? friends.filter((u: any) => u.id !== user.id) : friends;
-        setSuggestedFriends(filtered.slice(0, 5));
-        
-        // Load user's current steps (mock data for now)
-        setCurrentSteps(5000);
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Initialize static campus map with mock territories
-  useEffect(() => {
-    const container = document.getElementById('home-map');
-    if (!container) return;
-    // guard against re-init
-    if ((container as any)._leaflet_id) return;
-
-    // SRM KTR approximate center
-    const SRM_CENTER: [number, number] = [12.8232, 80.0452];
-    const SRM_BOUNDS = (window as any).L.latLngBounds([12.8195, 80.0400], [12.8275, 80.0490]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const map: any = (window as any).L?.map(container, { maxBounds: SRM_BOUNDS, maxBoundsViscosity: 1.0 }).setView(SRM_CENTER, 16);
-    if (!map) return;
-    (window as any).L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20,
-      subdomains:['mt0','mt1','mt2','mt3'],
-      attribution: '&copy; Google Maps'
-    }).addTo(map);
-
-    // Mock territories (lat,lon pairs)
-    const mockPolygons: [number, number][][] = [
-      [ [12.8238,80.0409],[12.8246,80.0421],[12.8242,80.0434],[12.8233,80.0422] ],
-      [ [12.8219,80.0455],[12.8227,80.0465],[12.8222,80.0476],[12.8213,80.0465] ],
-      [ [12.8249,80.0462],[12.8256,80.0471],[12.8251,80.0479],[12.8243,80.0469] ]
-    ];
-    mockPolygons.forEach((ring) => {
-      (window as any).L.polygon(ring, { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25 }).addTo(map);
-    });
-  }, []);
-
-  useEffect(() => {
-    // Connect to WebSocket for real-time updates
-    websocketService.connect().then(() => {
-      websocketService.subscribeToDailyLeaderboard((data) => {
-        setLeaderboardData(data);
-      });
-      websocketService.requestDailyLeaderboard();
-    });
-
-    return () => {
-      websocketService.disconnect();
-    };
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -200,12 +131,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
         <div className="flex items-center space-x-4">
           <span className="text-lg font-semibold">Athlos</span>
           <div className="relative">
-            <img 
-              src={user?.avatar || `https://i.pravatar.cc/40?u=${user?.id}`} 
-              alt="User Avatar" 
-              className="w-10 h-10 rounded-full cursor-pointer"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            />
+            <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="cursor-pointer">
+              <Avatar
+                name={userName}
+                src={userAvatarSrc}
+                className="w-10 h-10 rounded-full"
+                textClassName="text-lg"
+              />
+            </div>
             {isDropdownOpen && (
               <div ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-lg shadow-lg py-2 z-20 origin-top-right animate-in fade-in-20 slide-in-from-top-2">
                 <button
@@ -232,7 +165,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
                 <button
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    onNavigate('signin');
+                    onLogout();
                   }}
                   className="w-full flex items-center text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500 hover:text-white rounded-b-lg"
                 >
@@ -260,32 +193,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-4">Leaderboard</h2>
           <div className="bg-slate-800 p-4 rounded-2xl">
-            {isLoading ? (
-              <div className="text-center py-4">
-                <p className="text-gray-400">Loading leaderboard...</p>
-              </div>
-            ) : (
-              <ul className="space-y-4">
-                {leaderboardData.slice(0, 3).map((entry, index) => (
-                  <li key={entry.userId} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className={`w-8 text-center text-xl font-bold ${getRankClass(index)}`}>{entry.rank}</span>
-                      <img src={entry.avatar} alt={entry.name} className="w-10 h-10 rounded-full mx-4" />
-                      <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
-                      <span className="font-semibold">{entry.name}</span>
-                    </div>
-                    <span className="text-gray-400">{entry.totalSteps.toLocaleString()} steps</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Campus Map</h2>
-          <div className="bg-slate-800 p-0 rounded-2xl overflow-hidden">
-            <div id="home-map" className="w-full h-[300px]"></div>
+            <ul className="space-y-4">
+              {leaderboardData.map((user, index) => (
+                <li key={index} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className={`w-8 text-center text-xl font-bold ${getRankClass(index)}`}>{index + 1}</span>
+                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mx-4" />
+                    <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
+                    <span className="font-semibold">{user.name}</span>
+                  </div>
+                  <span className="text-gray-400">{user.steps.toLocaleString()} steps</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
