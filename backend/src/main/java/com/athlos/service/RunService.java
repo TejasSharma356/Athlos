@@ -2,6 +2,7 @@ package com.athlos.service;
 
 import com.athlos.dto.PointDTO;
 import com.athlos.dto.RunDTO;
+import com.athlos.dto.LeaderboardEntryDTO;
 import com.athlos.entity.Run;
 import com.athlos.entity.RunPoint;
 import com.athlos.entity.User;
@@ -9,6 +10,7 @@ import com.athlos.repository.RunRepository;
 import com.athlos.repository.UserRepository;
 import org.locationtech.jts.geom.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,12 @@ public class RunService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private LeaderboardService leaderboardService;
     
     private final GeometryFactory geometryFactory = new GeometryFactory();
     
@@ -71,6 +79,10 @@ public class RunService {
         }
         
         run = runRepository.save(run);
+        
+        // Broadcast leaderboard updates
+        broadcastLeaderboardUpdates();
+        
         return convertToDTO(run);
     }
     
@@ -189,6 +201,36 @@ public class RunService {
         }
         
         return dto;
+    }
+    
+    private void broadcastLeaderboardUpdates() {
+        try {
+            // Use @Async to avoid circular dependency issues
+            broadcastLeaderboardAsync();
+        } catch (Exception e) {
+            System.err.println("Error broadcasting leaderboard updates: " + e.getMessage());
+        }
+    }
+    
+    @org.springframework.scheduling.annotation.Async
+    public void broadcastLeaderboardAsync() {
+        try {
+            // Small delay to ensure database is updated
+            Thread.sleep(1000);
+            
+            // Send actual leaderboard data
+            List<LeaderboardEntryDTO> dailyLeaderboard = leaderboardService.getDailyLeaderboard();
+            List<LeaderboardEntryDTO> weeklyLeaderboard = leaderboardService.getWeeklyLeaderboard();
+            List<LeaderboardEntryDTO> allTimeLeaderboard = leaderboardService.getAllTimeLeaderboard();
+            
+            messagingTemplate.convertAndSend("/topic/leaderboard/daily", dailyLeaderboard);
+            messagingTemplate.convertAndSend("/topic/leaderboard/weekly", weeklyLeaderboard);
+            messagingTemplate.convertAndSend("/topic/leaderboard/all-time", allTimeLeaderboard);
+            
+            System.out.println("Leaderboard updates broadcasted successfully");
+        } catch (Exception e) {
+            System.err.println("Error in async leaderboard broadcast: " + e.getMessage());
+        }
     }
 }
 

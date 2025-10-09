@@ -74,7 +74,7 @@ athlos-fitness-app/
 - PostgreSQL 15 with PostGIS extension
 - Docker and Docker Compose (optional)
 
-##  Quick Start (Docker)
+## 🚀 Quick Start (Docker - Local Development)
 
 1. **Clone the repository**
    ```bash
@@ -91,6 +91,51 @@ athlos-fitness-app/
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080/api
    - WebSocket: ws://localhost:8080/ws
+
+## 🌐 Deploy to Railway (Production - FREE!)
+
+**Deploy your app to the cloud in 5 minutes:**
+
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Ready for Railway deployment"
+   git push origin main
+   ```
+
+2. **Deploy to Railway**
+   - Go to [railway.app](https://railway.app)
+   - Sign up with GitHub
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select your repository
+   - Railway auto-detects your Docker setup!
+
+3. **Add PostgreSQL Database**
+   - In Railway dashboard, click "+ New"
+   - Select "Database" → "PostgreSQL"
+   - Railway automatically enables PostGIS!
+
+4. **Set Environment Variables**
+   ```
+   JWT_SECRET=your-super-secret-jwt-key
+   JWT_EXPIRATION=86400000
+   CORS_ALLOWED_ORIGINS=https://your-app.railway.app
+   SPRING_PROFILES_ACTIVE=production
+   ```
+
+5. **You're Live!** 🎉
+   - Your app: `https://your-app.railway.app`
+   - **Free tier**: Perfect for development
+   - **Production**: $5/month for reliable hosting
+
+### Why Railway?
+- ✅ **Zero configuration** - Just connect GitHub
+- ✅ **Automatic HTTPS** - SSL certificates included
+- ✅ **Built-in PostgreSQL** - With PostGIS support
+- ✅ **Auto-scaling** - Handles traffic spikes
+- ✅ **Global CDN** - Fast worldwide access
+- ✅ **GitHub integration** - Push to deploy
+- ✅ **Free tier** - Perfect for testing
 
 ##  Manual Setup
 

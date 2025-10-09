@@ -9,18 +9,13 @@ interface HomeScreenProps {
   user: any;
 }
 
-const leaderboardData = [
-  { name: 'John', avatar: 'https://picsum.photos/seed/john/40/40', steps: 5800 },
-  { name: 'Sophie', avatar: 'https://picsum.photos/seed/sophie/40/40', steps: 5500 },
-  { name: 'Jacob', avatar: 'https://picsum.photos/seed/jacob/40/40', steps: 5100 },
-];
 
 const suggestedFriends = [
-    { name: 'Olivia', avatar: 'https://picsum.photos/seed/olivia/40/40' },
-    { name: 'Liam', avatar: 'https://picsum.photos/seed/liam/40/40' },
-    { name: 'Emma', avatar: 'https://picsum.photos/seed/emma/40/40' },
-    { name: 'Noah', avatar: 'https://picsum.photos/seed/noah/40/40' },
-    { name: 'Ava', avatar: 'https://picsum.photos/seed/ava/40/40' },
+    { name: 'Olivia', avatar: 'https://ui-avatars.com/api/?name=Olivia&background=ef4444&color=ffffff&size=40' },
+    { name: 'Liam', avatar: 'https://ui-avatars.com/api/?name=Liam&background=ef4444&color=ffffff&size=40' },
+    { name: 'Emma', avatar: 'https://ui-avatars.com/api/?name=Emma&background=ef4444&color=ffffff&size=40' },
+    { name: 'Noah', avatar: 'https://ui-avatars.com/api/?name=Noah&background=ef4444&color=ffffff&size=40' },
+    { name: 'Ava', avatar: 'https://ui-avatars.com/api/?name=Ava&background=ef4444&color=ffffff&size=40' },
 ];
 
 const LiquidProgress = ({ progress }: { progress: number }) => {
@@ -129,10 +124,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
   useEffect(() => {
     // Connect to WebSocket for real-time updates
     websocketService.connect().then(() => {
+      console.log('WebSocket connected, subscribing to leaderboard updates');
       websocketService.subscribeToDailyLeaderboard((data) => {
+        console.log('Received leaderboard update:', data);
         setLeaderboardData(data);
       });
       websocketService.requestDailyLeaderboard();
+    }).catch((error) => {
+      console.error('WebSocket connection failed:', error);
     });
 
     return () => {
@@ -174,6 +173,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
     }
   };
 
+  const formatRunTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${secs}s`;
+    } else {
+      return `${secs}s`;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full text-white bg-[#0F172A]">
         <style>{`
@@ -201,7 +214,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
           <span className="text-lg font-semibold">Athlos</span>
           <div className="relative">
             <img 
-              src={user?.avatar || `https://i.pravatar.cc/40?u=${user?.id}`} 
+              src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=ef4444&color=ffffff&size=40`} 
               alt="User Avatar" 
               className="w-10 h-10 rounded-full cursor-pointer"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -274,7 +287,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
                       <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
                       <span className="font-semibold">{entry.name}</span>
                     </div>
-                    <span className="text-gray-400">{entry.totalSteps.toLocaleString()} steps</span>
+                    <span className="text-gray-400">{formatRunTime(entry.totalSteps)}</span>
                   </li>
                 ))}
               </ul>

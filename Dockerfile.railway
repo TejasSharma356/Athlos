@@ -1,0 +1,34 @@
+# Railway-optimized Dockerfile
+FROM maven:3.9.6-eclipse-temurin-17 AS backend-build
+WORKDIR /app
+COPY backend/pom.xml .
+COPY backend/src ./src
+RUN mvn -B -q -DskipTests clean package
+
+FROM node:18-alpine AS frontend-build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# Install nginx
+RUN apk add --no-cache nginx
+
+# Copy backend
+COPY --from=backend-build /app/target/athlos-backend-0.0.1-SNAPSHOT.jar app.jar
+
+# Copy frontend build
+COPY --from=frontend-build /app/dist ./static
+
+# Create nginx config
+RUN echo 'events { worker_connections 1024; } http { include /etc/nginx/mime.types; default_type application/octet-stream; server { listen 8080; server_name localhost; location / { root /app/static; try_files $uri $uri/ /index.html; } location /api/ { proxy_pass http://localhost:8080/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; } location /ws/ { proxy_pass http://localhost:8080/ws/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade"; proxy_set_header Host $host; } } }' > /etc/nginx/nginx.conf
+
+EXPOSE 8080
+
+# Start both backend and nginx
+CMD ["sh", "-c", "java -jar app.jar & nginx -g 'daemon off;'"]

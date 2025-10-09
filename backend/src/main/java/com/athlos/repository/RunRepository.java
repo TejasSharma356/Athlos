@@ -31,5 +31,10 @@ public interface RunRepository extends JpaRepository<Run, Long> {
     Double getTotalDistanceByUserAndDateRange(@Param("user") User user, 
                                             @Param("startDate") LocalDateTime startDate, 
                                             @Param("endDate") LocalDateTime endDate);
+    
+    @Query("SELECT SUM(r.durationSeconds) FROM Run r WHERE r.user = :user AND r.startTime >= :startDate AND r.startTime <= :endDate")
+    Long getTotalRunTimeByUserAndDateRange(@Param("user") User user, 
+                                          @Param("startDate") LocalDateTime startDate, 
+                                          @Param("endDate") LocalDateTime endDate);
 }
 

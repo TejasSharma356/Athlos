@@ -29,82 +29,115 @@ public class LeaderboardService {
         LocalDateTime startOfDay = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
         LocalDateTime endOfDay = startOfDay.plusDays(1);
         
-        return userRepository.findAll().stream()
+        List<LeaderboardEntryDTO> entries = userRepository.findAll().stream()
                 .map(user -> {
-                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, startOfDay, endOfDay);
+                    Long totalRunTime = runRepository.getTotalRunTimeByUserAndDateRange(user, startOfDay, endOfDay);
                     Double totalDistance = runRepository.getTotalDistanceByUserAndDateRange(user, startOfDay, endOfDay);
+                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, startOfDay, endOfDay);
                     Integer territoriesClaimed = territoryRepository.countActiveTerritoriesByUser(user);
                     
                     LeaderboardEntryDTO entry = new LeaderboardEntryDTO();
                     entry.setUserId(user.getId());
                     entry.setName(user.getName());
-                    entry.setAvatar("https://i.pravatar.cc/40?u=" + user.getId());
+                    entry.setAvatar("https://ui-avatars.com/api/?name=" + user.getName() + "&background=ef4444&color=ffffff&size=40");
                     entry.setTotalSteps(totalSteps != null ? totalSteps : 0);
                     entry.setTotalDistance(totalDistance != null ? totalDistance : 0.0);
                     entry.setTerritoriesClaimed(territoriesClaimed != null ? territoriesClaimed : 0);
                     
                     return entry;
                 })
-                .filter(entry -> entry.getTotalSteps() > 0)
-                .sorted((a, b) -> Integer.compare(b.getTotalSteps(), a.getTotalSteps()))
-                .peek(entry -> entry.setRank(getRank(entry, getDailyLeaderboard())))
+                .filter(entry -> entry.getTotalSteps() > 0 || entry.getTotalDistance() > 0)
+                .sorted((a, b) -> {
+                    // Primary sort by total steps, secondary by distance
+                    int stepComparison = Integer.compare(b.getTotalSteps(), a.getTotalSteps());
+                    if (stepComparison != 0) return stepComparison;
+                    return Double.compare(b.getTotalDistance(), a.getTotalDistance());
+                })
                 .limit(50)
                 .collect(Collectors.toList());
+        
+        // Set ranks after sorting
+        for (int i = 0; i < entries.size(); i++) {
+            entries.get(i).setRank(i + 1);
+        }
+        
+        return entries;
     }
     
     public List<LeaderboardEntryDTO> getWeeklyLeaderboard() {
         LocalDateTime startOfWeek = LocalDateTime.now().truncatedTo(ChronoUnit.DAYS).minusDays(7);
         LocalDateTime endOfWeek = LocalDateTime.now();
         
-        return userRepository.findAll().stream()
+        List<LeaderboardEntryDTO> entries = userRepository.findAll().stream()
                 .map(user -> {
-                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, startOfWeek, endOfWeek);
+                    Long totalRunTime = runRepository.getTotalRunTimeByUserAndDateRange(user, startOfWeek, endOfWeek);
                     Double totalDistance = runRepository.getTotalDistanceByUserAndDateRange(user, startOfWeek, endOfWeek);
+                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, startOfWeek, endOfWeek);
                     Integer territoriesClaimed = territoryRepository.countActiveTerritoriesByUser(user);
                     
                     LeaderboardEntryDTO entry = new LeaderboardEntryDTO();
                     entry.setUserId(user.getId());
                     entry.setName(user.getName());
-                    entry.setAvatar("https://i.pravatar.cc/40?u=" + user.getId());
+                    entry.setAvatar("https://ui-avatars.com/api/?name=" + user.getName() + "&background=ef4444&color=ffffff&size=40");
                     entry.setTotalSteps(totalSteps != null ? totalSteps : 0);
                     entry.setTotalDistance(totalDistance != null ? totalDistance : 0.0);
                     entry.setTerritoriesClaimed(territoriesClaimed != null ? territoriesClaimed : 0);
                     
                     return entry;
                 })
-                .filter(entry -> entry.getTotalSteps() > 0)
-                .sorted((a, b) -> Integer.compare(b.getTotalSteps(), a.getTotalSteps()))
-                .peek(entry -> entry.setRank(getRank(entry, getWeeklyLeaderboard())))
+                .filter(entry -> entry.getTotalSteps() > 0 || entry.getTotalDistance() > 0)
+                .sorted((a, b) -> {
+                    // Primary sort by total steps, secondary by distance
+                    int stepComparison = Integer.compare(b.getTotalSteps(), a.getTotalSteps());
+                    if (stepComparison != 0) return stepComparison;
+                    return Double.compare(b.getTotalDistance(), a.getTotalDistance());
+                })
                 .limit(50)
                 .collect(Collectors.toList());
+        
+        // Set ranks after sorting
+        for (int i = 0; i < entries.size(); i++) {
+            entries.get(i).setRank(i + 1);
+        }
+        
+        return entries;
     }
     
     public List<LeaderboardEntryDTO> getAllTimeLeaderboard() {
-        return userRepository.findAll().stream()
+        List<LeaderboardEntryDTO> entries = userRepository.findAll().stream()
                 .map(user -> {
-                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, LocalDateTime.of(2020, 1, 1, 0, 0), LocalDateTime.now());
+                    Long totalRunTime = runRepository.getTotalRunTimeByUserAndDateRange(user, LocalDateTime.of(2020, 1, 1, 0, 0), LocalDateTime.now());
                     Double totalDistance = runRepository.getTotalDistanceByUserAndDateRange(user, LocalDateTime.of(2020, 1, 1, 0, 0), LocalDateTime.now());
+                    Integer totalSteps = runRepository.getTotalStepsByUserAndDateRange(user, LocalDateTime.of(2020, 1, 1, 0, 0), LocalDateTime.now());
                     Integer territoriesClaimed = territoryRepository.countActiveTerritoriesByUser(user);
                     
                     LeaderboardEntryDTO entry = new LeaderboardEntryDTO();
                     entry.setUserId(user.getId());
                     entry.setName(user.getName());
-                    entry.setAvatar("https://i.pravatar.cc/40?u=" + user.getId());
+                    entry.setAvatar("https://ui-avatars.com/api/?name=" + user.getName() + "&background=ef4444&color=ffffff&size=40");
                     entry.setTotalSteps(totalSteps != null ? totalSteps : 0);
                     entry.setTotalDistance(totalDistance != null ? totalDistance : 0.0);
                     entry.setTerritoriesClaimed(territoriesClaimed != null ? territoriesClaimed : 0);
                     
                     return entry;
                 })
-                .filter(entry -> entry.getTotalSteps() > 0)
-                .sorted((a, b) -> Integer.compare(b.getTotalSteps(), a.getTotalSteps()))
-                .peek(entry -> entry.setRank(getRank(entry, getAllTimeLeaderboard())))
+                .filter(entry -> entry.getTotalSteps() > 0 || entry.getTotalDistance() > 0)
+                .sorted((a, b) -> {
+                    // Primary sort by total steps, secondary by distance
+                    int stepComparison = Integer.compare(b.getTotalSteps(), a.getTotalSteps());
+                    if (stepComparison != 0) return stepComparison;
+                    return Double.compare(b.getTotalDistance(), a.getTotalDistance());
+                })
                 .limit(50)
                 .collect(Collectors.toList());
+        
+        // Set ranks after sorting
+        for (int i = 0; i < entries.size(); i++) {
+            entries.get(i).setRank(i + 1);
+        }
+        
+        return entries;
     }
     
-    private int getRank(LeaderboardEntryDTO entry, List<LeaderboardEntryDTO> leaderboard) {
-        return leaderboard.indexOf(entry) + 1;
-    }
 }
 

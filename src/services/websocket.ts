@@ -43,8 +43,13 @@ class WebSocketService {
   subscribeToDailyLeaderboard(callback: (data: LeaderboardEntry[]) => void) {
     if (this.stompClient && this.isConnected) {
       this.stompClient.subscribe('/topic/leaderboard/daily', (message: any) => {
-        const data = JSON.parse(message.body);
-        callback(data);
+        try {
+          const data = JSON.parse(message.body);
+          console.log('Daily leaderboard data received:', data);
+          callback(data);
+        } catch (error) {
+          console.error('Error parsing daily leaderboard data:', error);
+        }
       });
     }
   }
@@ -52,8 +57,13 @@ class WebSocketService {
   subscribeToWeeklyLeaderboard(callback: (data: LeaderboardEntry[]) => void) {
     if (this.stompClient && this.isConnected) {
       this.stompClient.subscribe('/topic/leaderboard/weekly', (message: any) => {
-        const data = JSON.parse(message.body);
-        callback(data);
+        try {
+          const data = JSON.parse(message.body);
+          console.log('Weekly leaderboard data received:', data);
+          callback(data);
+        } catch (error) {
+          console.error('Error parsing weekly leaderboard data:', error);
+        }
       });
     }
   }
@@ -61,8 +71,13 @@ class WebSocketService {
   subscribeToAllTimeLeaderboard(callback: (data: LeaderboardEntry[]) => void) {
     if (this.stompClient && this.isConnected) {
       this.stompClient.subscribe('/topic/leaderboard/all-time', (message: any) => {
-        const data = JSON.parse(message.body);
-        callback(data);
+        try {
+          const data = JSON.parse(message.body);
+          console.log('All-time leaderboard data received:', data);
+          callback(data);
+        } catch (error) {
+          console.error('Error parsing all-time leaderboard data:', error);
+        }
       });
     }
   }

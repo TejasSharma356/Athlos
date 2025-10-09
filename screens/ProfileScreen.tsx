@@ -20,12 +20,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, user }) => {
   useEffect(() => {
     const loadUserData = async () => {
       if (!user || !user.id) {
+        console.log('No user or user ID, skipping data load');
         setIsLoading(false);
         return;
       }
 
+      console.log('Loading user data for user:', user.id);
       try {
         const runs = await apiService.getUserRuns(user.id);
+        console.log('Loaded runs:', runs);
         setUserRuns(runs);
 
         // Calculate stats
@@ -97,7 +100,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, user }) => {
           <>
             <section className="flex flex-col items-center text-center mb-8">
               <img 
-                src={user?.avatar || `https://i.pravatar.cc/128?u=${user?.id || 'default'}`} 
+                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}&background=ef4444&color=ffffff&size=128`} 
                 alt="User Avatar" 
                 className="w-24 h-24 rounded-full mb-4 border-4 border-slate-700"
               />

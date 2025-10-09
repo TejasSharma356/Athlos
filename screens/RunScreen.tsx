@@ -217,6 +217,15 @@ const RunScreen: React.FC<RunScreenProps> = ({ onNavigate, user }) => {
         setIsPaused(true); // stop timer immediately
         await apiService.endRun(currentRun.id);
         
+        // Refresh leaderboards after run completion
+        try {
+          await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/leaderboard/refresh`, {
+            method: 'POST'
+          });
+        } catch (error) {
+          console.log('Leaderboard refresh failed:', error);
+        }
+        
         // Draw the final claimed territory polygon
         if (mapRef.current && path.length > 2) {
           L.polygon(path, { color: '#EF4444', fillColor: '#EF4444', fillOpacity: 0.3 }).addTo(mapRef.current);
