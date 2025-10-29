@@ -10,3 +10,19 @@ export type User = {
   email: string;
   avatar?: string;
 };
+
+export type LeaderboardUser = {
+  id: number;
+  name: string;
+  avatar: string;
+  steps: number;
+  rank: number;
+};
+
+export type Activity = {
+  id: string;
+  distance: string;
+  time: string;
+  territory: string;
+  date: string;
+};
