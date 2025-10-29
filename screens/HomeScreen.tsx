@@ -1,30 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { Screen, User } from '../types';
-import { HomeIcon, ChartIcon, BellIcon, UserIcon, SettingsIcon, LogoutIcon, UserPlusIcon, SearchIcon } from '../components/icons';
+import type { Screen, User, LeaderboardUser } from '../types';
+import { HomeIcon, ChartIcon, BellIcon, UserIcon, SettingsIcon, LogoutIcon, UserPlusIcon } from '../components/icons';
 import Avatar from '../components/Avatar';
-
-interface HomeScreenProps {
-  onNavigate: (screen: Screen) => void;
-  user: User;
-  onLogout: () => void;
-}
-
-const leaderboardData = [
-  { name: 'John', avatar: 'https://picsum.photos/seed/john/40/40', steps: 5800 },
-  { name: 'Sophie', avatar: 'https://picsum.photos/seed/sophie/40/40', steps: 5500 },
-  { name: 'Jacob', avatar: 'https://picsum.photos/seed/jacob/40/40', steps: 5100 },
-];
-
-const suggestedFriends = [
-    { name: 'Olivia', avatar: 'https://picsum.photos/seed/olivia/40/40' },
-    { name: 'Liam', avatar: 'https://picsum.photos/seed/liam/40/40' },
-    { name: 'Emma', avatar: 'https://picsum.photos/seed/emma/40/40' },
-    { name: 'Noah', avatar: 'https://picsum.photos/seed/noah/40/40' },
-    { name: 'Ava', avatar: 'https://picsum.photos/seed/ava/40/40' },
-];
+import { getLeaderboardUsers, getCurrentUserData, getFriendSuggestions } from './userService';
 
 const LiquidProgress = ({ progress }: { progress: number }) => {
-  const uniqueId = "wave-clip-path";
   // The SVG height is 200. Progress will map from 0 to 100.
   // When progress is 0, we want translateY to be 200 (fully hidden at bottom).
   // When progress is 100, we want translateY to be 0 (fully visible at top).
@@ -53,23 +33,22 @@ const LiquidProgress = ({ progress }: { progress: number }) => {
 };
 
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, onLogout }) => {
+const HomeScreen: React.FC<{ onNavigate: (screen: Screen) => void; user: User; onLogout: () => void; }> = ({ onNavigate, user, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [friendSearchTerm, setFriendSearchTerm] = useState('');
 
   const userName = user.name;
   const userAvatarSrc = user.avatar;
 
-  const currentSteps = 5000;
-  const goalSteps = 6000;
+  // Data is fetched from the user service
+  const allUsers = useMemo(() => getLeaderboardUsers(), []);
+  const topThreeUsers = useMemo(() => allUsers.slice(0, 3), [allUsers]);
+  const currentUserData = useMemo(() => getCurrentUserData(userName), [userName]);
+  const friendSuggestions = useMemo(() => getFriendSuggestions(userName, topThreeUsers), [userName, topThreeUsers]);
+  
+  const currentSteps = currentUserData ? currentUserData.steps : 0;
+  const goalSteps = 10000;
   const progress = Math.min((currentSteps / goalSteps) * 100, 100);
-
-  const filteredFriends = useMemo(() => {
-    return suggestedFriends.filter(friend =>
-      friend.name.toLowerCase().includes(friendSearchTerm.toLowerCase())
-    );
-  }, [friendSearchTerm]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -193,20 +172,46 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, onLogout }) =
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-4">Leaderboard</h2>
           <div className="bg-slate-800 p-4 rounded-2xl">
-            <ul className="space-y-4">
-              {leaderboardData.map((user, index) => (
-                <li key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className={`w-8 text-center text-xl font-bold ${getRankClass(index)}`}>{index + 1}</span>
-                    <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mx-4" />
-                    <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
-                    <span className="font-semibold">{user.name}</span>
-                  </div>
-                  <span className="text-gray-400">{user.steps.toLocaleString()} steps</span>
-                </li>
-              ))}
-            </ul>
+            {topThreeUsers.length > 0 ? (
+              <ul className="space-y-4">
+                {topThreeUsers.map((user, index) => (
+                  <li key={index} className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className={`w-8 text-center text-xl font-bold ${getRankClass(index)}`}>{index + 1}</span>
+                      <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mx-4" />
+                      <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
+                      <span className="font-semibold">{user.name}</span>
+                    </div>
+                    <span className="text-gray-400">{user.steps.toLocaleString()} steps</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-400 py-4">Leaderboard data is not available yet.</p>
+            )}
           </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-bold mb-4">Connect with Friends</h2>
+          {friendSuggestions.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {friendSuggestions.map((friend) => (
+                <div key={friend.id} className="bg-slate-800 p-4 rounded-2xl flex flex-col items-center text-center">
+                  <img src={friend.avatar} alt={friend.name} className="w-16 h-16 rounded-full mb-3" />
+                  <span className="font-semibold text-sm mb-3 flex-grow">{friend.name}</span>
+                  <button className="w-full flex items-center justify-center py-2 bg-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-600 transition">
+                    <UserPlusIcon className="w-4 h-4 mr-2" />
+                    Connect
+                  </button>
+                </div>
+              ))}
+            </div>
+           ) : (
+            <div className="bg-slate-800 p-4 rounded-2xl text-center text-gray-400">
+              <p>No friend suggestions at the moment.</p>
+            </div>
+          )}
         </section>
 
         <button 
@@ -215,42 +220,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user, onLogout }) =
         >
           Start RUN
         </button>
-
-        <section className="mt-8">
-            <h2 className="text-xl font-bold mb-4">Connect with Friends</h2>
-            <div className="bg-slate-800 p-4 rounded-2xl">
-                <div className="relative mb-4">
-                    <input
-                        type="text"
-                        placeholder="Search for friends..."
-                        value={friendSearchTerm}
-                        onChange={(e) => setFriendSearchTerm(e.target.value)}
-                        className="w-full p-3 pl-10 bg-slate-900 rounded-lg border border-transparent focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 transition"
-                    />
-                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                </div>
-                {filteredFriends.length > 0 ? (
-                    <ul className="space-y-4">
-                        {filteredFriends.map((friend, index) => (
-                            <li key={index} className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full" />
-                                    <span className="font-semibold ml-4">{friend.name}</span>
-                                </div>
-                                <button className="flex items-center px-4 py-2 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/40 transition">
-                                    <UserPlusIcon className="w-5 h-5 mr-2" />
-                                    Add
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                ) : (
-                    <div className="text-center py-4">
-                        <p className="text-gray-400">No users found.</p>
-                    </div>
-                )}
-            </div>
-        </section>
 
       </main>
       
