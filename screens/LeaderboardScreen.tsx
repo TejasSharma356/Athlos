@@ -1,30 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import type { Screen } from '../types';
+import type { Screen, LeaderboardUser } from '../types';
 import { ChevronLeftIcon, SearchIcon } from '../components/icons';
+import { getLeaderboardUsers } from './userService';
 
+// Fix: Added LeaderboardScreenProps interface to define component props.
 interface LeaderboardScreenProps {
   onNavigate: (screen: Screen) => void;
 }
 
-// Generate more realistic mock data
-const generateLeaderboardData = () => {
-  const names = ["Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "Elijah", "Charlotte", "William", "Sophia", "James", "Amelia", "Benjamin", "Isabella", "Lucas", "Mia", "Henry", "Evelyn", "Alexander", "Harper"];
-  return Array.from({ length: 50 }, (_, i) => {
-    const name = names[i % names.length] + (i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : '');
-    return {
-      rank: i + 1,
-      name,
-      avatar: `https://i.pravatar.cc/40?u=${name}`,
-      steps: Math.floor(Math.random() * 5000) + 7000 - i * 50,
-    };
-  }).sort((a, b) => b.steps - a.steps).map((user, i) => ({ ...user, rank: i + 1 }));
-};
-
 const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const allUsers = useMemo(generateLeaderboardData, []);
+  const allUsers = useMemo(() => getLeaderboardUsers(), []);
 
   const filteredUsers = useMemo(() => {
+    if (!allUsers) return [];
     return allUsers.filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -70,7 +59,7 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => 
         {filteredUsers.length > 0 ? (
           <ul className="space-y-2">
             {filteredUsers.map((user) => (
-              <li key={user.rank} className="flex items-center p-3 bg-slate-800 rounded-lg hover:bg-slate-700/50 transition">
+              <li key={user.rank} className={`flex items-center p-3 bg-slate-800 rounded-lg hover:bg-slate-700/50 transition ${user.name === 'Alex Johnson' ? 'border-2 border-red-500' : ''}`}>
                 <span className={`w-8 text-center text-lg font-bold ${getRankClass(user.rank)}`}>
                   {user.rank}
                 </span>
