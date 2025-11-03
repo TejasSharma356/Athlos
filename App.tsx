@@ -15,6 +15,7 @@ import RunScreen from './screens/RunScreen';
 
 const App: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('welcome');
+  const [goalSteps, setGoalSteps] = useState(10000);
   const [currentUser, setCurrentUser] = useState<User>({
     name: 'Alex Johnson',
     email: 'alex.j@example.com',
@@ -44,6 +45,11 @@ const App: React.FC = () => {
       navigate('signin');
   }
 
+  const handleSetGoal = (steps: number) => {
+    setGoalSteps(steps);
+    navigate('home');
+  };
+
   const renderScreen = () => {
     switch (screen) {
       case 'welcome':
@@ -55,9 +61,9 @@ const App: React.FC = () => {
       case 'personalinfo':
         return <PersonalInfoScreen onNavigate={navigate} />;
       case 'goalsetting':
-        return <GoalSettingScreen onNavigate={navigate} />;
+        return <GoalSettingScreen onSetGoal={handleSetGoal} />;
       case 'home':
-        return <HomeScreen onNavigate={navigate} user={currentUser} onLogout={handleLogout} />;
+        return <HomeScreen onNavigate={navigate} user={currentUser} onLogout={handleLogout} goalSteps={goalSteps} />;
       case 'profile':
         return <ProfileScreen onNavigate={navigate} user={currentUser} />;
       case 'settings':
