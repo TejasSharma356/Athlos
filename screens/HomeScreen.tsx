@@ -33,7 +33,7 @@ const LiquidProgress = ({ progress }: { progress: number }) => {
 };
 
 
-const HomeScreen: React.FC<{ onNavigate: (screen: Screen) => void; user: User; onLogout: () => void; }> = ({ onNavigate, user, onLogout }) => {
+const HomeScreen: React.FC<{ onNavigate: (screen: Screen) => void; user: User; onLogout: () => void; goalSteps: number; }> = ({ onNavigate, user, onLogout, goalSteps }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +47,6 @@ const HomeScreen: React.FC<{ onNavigate: (screen: Screen) => void; user: User; o
   const friendSuggestions = useMemo(() => getFriendSuggestions(userName, topThreeUsers), [userName, topThreeUsers]);
   
   const currentSteps = currentUserData ? currentUserData.steps : 0;
-  const goalSteps = 10000;
   const progress = Math.min((currentSteps / goalSteps) * 100, 100);
 
   useEffect(() => {
