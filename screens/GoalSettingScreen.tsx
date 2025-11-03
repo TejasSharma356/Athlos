@@ -2,13 +2,11 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Screen } from '../types';
 import { MinusIcon, PlusIcon } from '../components/icons';
 
-// Fix: Updated props to accept an optional `onNext` callback to handle navigation within the onboarding flow. `onNavigate` is also made optional.
 interface GoalSettingScreenProps {
-  onNavigate?: (screen: Screen) => void;
-  onNext?: () => void;
+  onSetGoal: (steps: number) => void;
 }
 
-const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onNavigate, onNext }) => {
+const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onSetGoal }) => {
   const [goal, setGoal] = useState(6000);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<number | null>(null);
@@ -151,13 +149,7 @@ const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onNavigate, onNex
         <footer className="px-8 pb-8 pt-4">
           <button
             type="button"
-            onClick={() => {
-              if (onNext) {
-                onNext();
-              } else if (onNavigate) {
-                onNavigate('home');
-              }
-            }}
+            onClick={() => onSetGoal(goal)}
             className="w-full max-w-xs mx-auto block py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
           >
             Finish Setup
