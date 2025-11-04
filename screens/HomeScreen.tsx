@@ -1,27 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { Screen } from '../types';
 import { HomeIcon, ChartIcon, BellIcon, UserIcon, SettingsIcon, LogoutIcon, UserPlusIcon, SearchIcon } from '../components/icons';
-import { apiService, LeaderboardEntry } from '../src/services/api';
+import { apiService, LeaderboardEntry, User, Run } from '../src/services/api';
 import { websocketService } from '../src/services/websocket';
-
-interface HomeScreenProps {
-  onNavigate: (screen: Screen) => void;
-  user: any;
-}
-
-const leaderboardData = [
-  { name: 'John', avatar: 'https://picsum.photos/seed/john/40/40', steps: 5800 },
-  { name: 'Sophie', avatar: 'https://picsum.photos/seed/sophie/40/40', steps: 5500 },
-  { name: 'Jacob', avatar: 'https://picsum.photos/seed/jacob/40/40', steps: 5100 },
-];
-
-const suggestedFriends = [
-    { name: 'Olivia', avatar: 'https://picsum.photos/seed/olivia/40/40' },
-    { name: 'Liam', avatar: 'https://picsum.photos/seed/liam/40/40' },
-    { name: 'Emma', avatar: 'https://picsum.photos/seed/emma/40/40' },
-    { name: 'Noah', avatar: 'https://picsum.photos/seed/noah/40/40' },
-    { name: 'Ava', avatar: 'https://picsum.photos/seed/ava/40/40' },
-];
+import { Avatar } from '../components/Avatar';
 
 const LiquidProgress = ({ progress }: { progress: number }) => {
   const uniqueId = "wave-clip-path";
@@ -52,6 +34,10 @@ const LiquidProgress = ({ progress }: { progress: number }) => {
   );
 };
 
+interface HomeScreenProps {
+  onNavigate: (screen: Screen) => void;
+  user: User | null;
+}
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -83,8 +69,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
         const filtered = user ? friends.filter((u: any) => u.id !== user.id) : friends;
         setSuggestedFriends(filtered.slice(0, 5));
         
-        // Load user's current steps (mock data for now)
-        setCurrentSteps(5000);
+        // Calculate user's current steps from today's runs
+        if (user && user.id) {
+          try {
+            const userRuns = await apiService.getUserRuns(user.id);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayRuns = userRuns.filter(run => {
+              if (!run.startTime) return false;
+              const runDate = new Date(run.startTime);
+              runDate.setHours(0, 0, 0, 0);
+              return runDate.getTime() === today.getTime();
+            });
+            const totalStepsToday = todayRuns.reduce((sum, run) => sum + (run.totalSteps || 0), 0);
+            setCurrentSteps(totalStepsToday);
+          } catch (error) {
+            console.error('Error loading user runs:', error);
+            setCurrentSteps(0);
+          }
+        } else {
+          setCurrentSteps(0);
+        }
         
         setIsLoading(false);
       } catch (error) {
@@ -94,9 +99,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
     };
 
     loadData();
-  }, []);
+  }, [user]);
 
-  // Initialize static campus map with mock territories
+  // Initialize campus map with real territories
   useEffect(() => {
     const container = document.getElementById('home-map');
     if (!container) return;
@@ -115,15 +120,46 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
       attribution: '&copy; Google Maps'
     }).addTo(map);
 
-    // Mock territories (lat,lon pairs)
-    const mockPolygons: [number, number][][] = [
-      [ [12.8238,80.0409],[12.8246,80.0421],[12.8242,80.0434],[12.8233,80.0422] ],
-      [ [12.8219,80.0455],[12.8227,80.0465],[12.8222,80.0476],[12.8213,80.0465] ],
-      [ [12.8249,80.0462],[12.8256,80.0471],[12.8251,80.0479],[12.8243,80.0469] ]
-    ];
-    mockPolygons.forEach((ring) => {
-      (window as any).L.polygon(ring, { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.25 }).addTo(map);
-    });
+    // Load real territories from backend
+    const loadTerritories = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8080/api'}/territories/active`);
+        const territories = await response.json();
+        
+        if (Array.isArray(territories)) {
+          territories.forEach((territory: any) => {
+            if (territory.polygon) {
+              // Convert GeoJSON-like coordinates to LatLng array
+              const coordinates = territory.polygon.coordinates || territory.polygon;
+              if (Array.isArray(coordinates) && coordinates.length > 0) {
+                // Handle different coordinate formats
+                let latLngs: [number, number][] = [];
+                if (coordinates[0] && Array.isArray(coordinates[0][0])) {
+                  // GeoJSON format: [[[lon,lat], ...]]
+                  latLngs = coordinates[0].map((coord: number[]) => [coord[1], coord[0]]);
+                } else if (Array.isArray(coordinates[0])) {
+                  // Simple format: [[lon,lat], ...]
+                  latLngs = coordinates.map((coord: number[]) => [coord[1], coord[0]]);
+                }
+                
+                if (latLngs.length > 2) {
+                  (window as any).L.polygon(latLngs, {
+                    color: '#22c55e',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.25,
+                    weight: 2
+                  }).addTo(map);
+                }
+              }
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error loading territories:', error);
+      }
+    };
+    
+    loadTerritories();
   }, []);
 
   useEffect(() => {
@@ -200,12 +236,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
         <div className="flex items-center space-x-4">
           <span className="text-lg font-semibold">Athlos</span>
           <div className="relative">
-            <img 
-              src={user?.avatar || `https://i.pravatar.cc/40?u=${user?.id}`} 
-              alt="User Avatar" 
-              className="w-10 h-10 rounded-full cursor-pointer"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            />
+            <div onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="cursor-pointer">
+              <Avatar name={user?.name} size={40} />
+            </div>
             {isDropdownOpen && (
               <div ref={dropdownRef} className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-lg shadow-lg py-2 z-20 origin-top-right animate-in fade-in-20 slide-in-from-top-2">
                 <button
@@ -270,7 +303,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
                   <li key={entry.userId} className="flex items-center justify-between">
                     <div className="flex items-center">
                       <span className={`w-8 text-center text-xl font-bold ${getRankClass(index)}`}>{entry.rank}</span>
-                      <img src={entry.avatar} alt={entry.name} className="w-10 h-10 rounded-full mx-4" />
+                      <div className="mx-4">
+                        <Avatar name={entry.name} size={40} />
+                      </div>
                       <span className="text-xl mr-2">{getMedalSymbol(index)}</span>
                       <span className="font-semibold">{entry.name}</span>
                     </div>
@@ -314,7 +349,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, user }) => {
                         {filteredFriends.map((friend, index) => (
                             <li key={index} className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full" />
+                                    <Avatar name={friend.name} size={40} />
                                     <span className="font-semibold ml-4">{friend.name}</span>
                                 </div>
                                 <button className="flex items-center px-4 py-2 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/40 transition">

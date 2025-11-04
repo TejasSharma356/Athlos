@@ -34,7 +34,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, on
       // Immediately log the user in to retrieve token
       const loggedIn = await apiService.login(formData.email, formData.password);
       onUserLogin(loggedIn);
-      onNavigate('home');
+      // onUserLogin will handle navigation based on onboarding status
     } catch (err) {
       setError('Failed to create account. Please try again.');
       console.error('Registration error:', err);
@@ -116,10 +116,7 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({ onNavigate, onUserLogin, on
           </form>
         </main>
 
-        <footer className="text-center py-4 space-y-3">
-          <button onClick={onGuestLogin} className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors">
-            Continue as Guest
-          </button>
+        <footer className="text-center py-4">
           <p className="text-gray-400">
             Already have an account?{' '}
             <button onClick={() => onNavigate('signin')} className="font-semibold text-red-400 hover:underline">

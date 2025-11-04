@@ -1,34 +1,84 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Screen } from '../types';
 import { ChevronLeftIcon, SearchIcon } from '../components/icons';
+import { apiService, LeaderboardEntry } from '../src/services/api';
+import { websocketService } from '../src/services/websocket';
+import { Avatar } from '../components/Avatar';
 
 interface LeaderboardScreenProps {
   onNavigate: (screen: Screen) => void;
+  user: any;
 }
 
-// Generate more realistic mock data
-const generateLeaderboardData = () => {
-  const names = ["Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "Elijah", "Charlotte", "William", "Sophia", "James", "Amelia", "Benjamin", "Isabella", "Lucas", "Mia", "Henry", "Evelyn", "Alexander", "Harper"];
-  return Array.from({ length: 50 }, (_, i) => {
-    const name = names[i % names.length] + (i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : '');
-    return {
-      rank: i + 1,
-      name,
-      avatar: `https://i.pravatar.cc/40?u=${name}`,
-      steps: Math.floor(Math.random() * 5000) + 7000 - i * 50,
-    };
-  }).sort((a, b) => b.steps - a.steps).map((user, i) => ({ ...user, rank: i + 1 }));
-};
-
-const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => {
+const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate, user }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const allUsers = useMemo(generateLeaderboardData, []);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'all-time'>('daily');
 
   const filteredUsers = useMemo(() => {
-    return allUsers.filter(user =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    return leaderboardData.filter(entry =>
+      entry.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [allUsers, searchTerm]);
+  }, [leaderboardData, searchTerm]);
+
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      try {
+        setIsLoading(true);
+        let data: LeaderboardEntry[];
+        
+        switch (activeTab) {
+          case 'daily':
+            data = await apiService.getDailyLeaderboard();
+            break;
+          case 'weekly':
+            data = await apiService.getWeeklyLeaderboard();
+            break;
+          case 'all-time':
+            data = await apiService.getAllTimeLeaderboard();
+            break;
+          default:
+            data = await apiService.getDailyLeaderboard();
+        }
+        
+        setLeaderboardData(data);
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLeaderboard();
+  }, [activeTab]);
+
+  useEffect(() => {
+    // Connect to WebSocket for real-time updates
+    websocketService.connect().then(() => {
+      websocketService.subscribeToDailyLeaderboard((data) => {
+        if (activeTab === 'daily') {
+          setLeaderboardData(data);
+        }
+      });
+      websocketService.subscribeToWeeklyLeaderboard((data) => {
+        if (activeTab === 'weekly') {
+          setLeaderboardData(data);
+        }
+      });
+      websocketService.subscribeToAllTimeLeaderboard((data) => {
+        if (activeTab === 'all-time') {
+          setLeaderboardData(data);
+        }
+      });
+    }).catch((error) => {
+      console.error('Leaderboard WebSocket connection failed:', error);
+    });
+
+    return () => {
+      websocketService.disconnect();
+    };
+  }, [activeTab]);
 
   const getMedalSymbol = (rank: number) => {
     if (rank === 1) return '🥇';
@@ -53,6 +103,40 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => 
         <h1 className="text-xl font-bold">Leaderboard</h1>
       </header>
 
+      {/* Tab Navigation */}
+      <div className="flex border-b border-slate-800">
+        <button
+          onClick={() => setActiveTab('daily')}
+          className={`flex-1 py-3 px-4 text-sm font-medium ${
+            activeTab === 'daily' 
+              ? 'text-red-400 border-b-2 border-red-400' 
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Daily
+        </button>
+        <button
+          onClick={() => setActiveTab('weekly')}
+          className={`flex-1 py-3 px-4 text-sm font-medium ${
+            activeTab === 'weekly' 
+              ? 'text-red-400 border-b-2 border-red-400' 
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Weekly
+        </button>
+        <button
+          onClick={() => setActiveTab('all-time')}
+          className={`flex-1 py-3 px-4 text-sm font-medium ${
+            activeTab === 'all-time' 
+              ? 'text-red-400 border-b-2 border-red-400' 
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          All Time
+        </button>
+      </div>
+
       <div className="p-6">
         <div className="relative">
           <input
@@ -67,19 +151,26 @@ const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => 
       </div>
 
       <main className="flex-grow overflow-y-auto px-6 pb-6">
-        {filteredUsers.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-10">
+            <div className="loading-spinner mb-4"></div>
+            <p className="text-gray-400">Loading leaderboard...</p>
+          </div>
+        ) : filteredUsers.length > 0 ? (
           <ul className="space-y-2">
-            {filteredUsers.map((user) => (
-              <li key={user.rank} className="flex items-center p-3 bg-slate-800 rounded-lg hover:bg-slate-700/50 transition">
-                <span className={`w-8 text-center text-lg font-bold ${getRankClass(user.rank)}`}>
-                  {user.rank}
+            {filteredUsers.map((entry) => (
+              <li key={entry.userId} className="flex items-center p-3 bg-slate-800 rounded-lg hover:bg-slate-700/50 transition">
+                <span className={`w-8 text-center text-lg font-bold ${getRankClass(entry.rank)}`}>
+                  {entry.rank}
                 </span>
-                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full mx-4" />
-                <div className="flex-grow">
-                  <span className="font-semibold">{user.name}</span>
-                  <span className="text-lg ml-2">{getMedalSymbol(user.rank)}</span>
+                <div className="mx-4">
+                  <Avatar name={entry.name} size={40} />
                 </div>
-                <span className="text-gray-300 font-medium">{user.steps.toLocaleString()} steps</span>
+                <div className="flex-grow">
+                  <span className="font-semibold">{entry.name}</span>
+                  <span className="text-lg ml-2">{getMedalSymbol(entry.rank)}</span>
+                </div>
+                <span className="text-gray-300 font-medium">{entry.totalSteps.toLocaleString()} steps</span>
               </li>
             ))}
           </ul>

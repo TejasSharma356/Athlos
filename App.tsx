@@ -24,46 +24,31 @@ const App: React.FC = () => {
 
   const handleUserLogin = (userData: User) => {
     setUser(userData);
+    // Skip Personal Info for now; go straight to Home after auth
     setScreen('home');
   };
 
   const handleUserLogout = () => {
     apiService.logout();
     setUser(null);
+    localStorage.removeItem('athlos_user');
+    localStorage.removeItem('athlos_token');
+    localStorage.removeItem('athlos_is_guest');
     setScreen('welcome');
   };
 
-  const handleGuestLogin = () => {
-    const guestUser: User = {
-      id: 0,
-      email: 'guest@example.com',
-      name: 'Guest',
-      dailyStepGoal: 6000,
-      createdAt: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-    } as any;
-    localStorage.setItem('athlos_is_guest', 'true');
-    setUser(guestUser);
-    setScreen('home');
+  const handleUserUpdate = (updatedUser: User) => {
+    setUser(updatedUser);
   };
 
-  // Check for existing user session on app load
+  // Always start at Welcome: do not auto-restore sessions
   useEffect(() => {
-    const savedUser = localStorage.getItem('athlos_user');
-    const hasToken = !!localStorage.getItem('athlos_token');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        // Prefer real auth sessions over guest
-        if (hasToken || localStorage.getItem('athlos_is_guest') === 'true') {
-          setUser(userData);
-          setScreen('home');
-        }
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('athlos_user');
-      }
-    }
+    // Optional: clear any stale session to avoid unauthorized saves
+    localStorage.removeItem('athlos_user');
+    localStorage.removeItem('athlos_token');
+    localStorage.removeItem('athlos_is_guest');
+    setUser(null);
+    setScreen('welcome');
   }, []);
 
   // Save user to localStorage when user changes
@@ -80,13 +65,13 @@ const App: React.FC = () => {
       case 'welcome':
         return <WelcomeScreen onNavigate={navigate} />;
       case 'signup':
-        return <SignUpScreen onNavigate={navigate} onUserLogin={handleUserLogin} onGuestLogin={handleGuestLogin} />;
+        return <SignUpScreen onNavigate={navigate} onUserLogin={handleUserLogin} onGuestLogin={() => {}} />;
       case 'signin':
-        return <SignInScreen onNavigate={navigate} onUserLogin={handleUserLogin} onGuestLogin={handleGuestLogin} />;
+        return <SignInScreen onNavigate={navigate} onUserLogin={handleUserLogin} onGuestLogin={() => {}} />;
       case 'personalinfo':
-        return <PersonalInfoScreen onNavigate={navigate} user={user} />;
+        return <PersonalInfoScreen onNavigate={navigate} user={user} onUserUpdate={handleUserUpdate} />;
       case 'goalsetting':
-        return <GoalSettingScreen onNavigate={navigate} user={user} />;
+        return <GoalSettingScreen onNavigate={navigate} user={user} onUserUpdate={handleUserUpdate} />;
       case 'home':
         return <HomeScreen onNavigate={navigate} user={user} />;
       case 'profile':
@@ -94,7 +79,7 @@ const App: React.FC = () => {
       case 'settings':
         return <SettingsScreen onNavigate={navigate} user={user} />;
       case 'editprofile':
-        return <EditProfileScreen onNavigate={navigate} user={user} />;
+        return <EditProfileScreen onNavigate={navigate} user={user} onUserUpdate={handleUserUpdate} />;
       case 'leaderboard':
         return <LeaderboardScreen onNavigate={navigate} user={user} />;
       case 'disclaimer':

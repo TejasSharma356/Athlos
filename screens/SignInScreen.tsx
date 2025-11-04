@@ -33,7 +33,7 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onUserLogin, on
       const user = await apiService.login(formData.email, formData.password);
       localStorage.removeItem('athlos_is_guest');
       onUserLogin(user);
-      onNavigate('home');
+      // onUserLogin will handle navigation based on onboarding status
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error('Login error:', err);
@@ -116,9 +116,6 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ onNavigate, onUserLogin, on
             <button className="w-full py-4 bg-slate-800/80 rounded-lg font-semibold flex items-center justify-center hover:bg-slate-700/80 transition">
               <AppleIcon className="w-6 h-6 mr-3 text-white" />
               Continue with Apple
-            </button>
-            <button onClick={onGuestLogin} className="w-full py-4 bg-red-600 rounded-lg font-semibold flex items-center justify-center hover:bg-red-700 transition">
-              Continue as Guest
             </button>
           </div>
         </main>

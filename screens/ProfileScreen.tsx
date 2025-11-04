@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Screen } from '../types';
 import { ChevronLeftIcon, MapPinIcon } from '../components/icons';
 import { apiService, User, Run } from '../src/services/api';
+import { Avatar } from '../components/Avatar';
 
 interface ProfileScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -96,11 +97,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate, user }) => {
         ) : (
           <>
             <section className="flex flex-col items-center text-center mb-8">
-              <img 
-                src={user?.avatar || `https://i.pravatar.cc/128?u=${user?.id || 'default'}`} 
-                alt="User Avatar" 
-                className="w-24 h-24 rounded-full mb-4 border-4 border-slate-700"
-              />
+              <div className="mb-4">
+                <Avatar name={user?.name} size={96} />
+              </div>
               <h2 className="text-2xl font-bold">{user?.name || 'Guest User'}</h2>
               <p className="text-gray-400">
                 {user?.createdAt ? `Joined ${new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` : 'Guest Account'}

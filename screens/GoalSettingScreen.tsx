@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Screen } from '../types';
 import { MinusIcon, PlusIcon } from '../components/icons';
+import { apiService, User } from '../src/services/api';
 
-// Fix: Updated props to accept an optional `onNext` callback to handle navigation within the onboarding flow. `onNavigate` is also made optional.
 interface GoalSettingScreenProps {
-  onNavigate?: (screen: Screen) => void;
-  onNext?: () => void;
+  onNavigate: (screen: Screen) => void;
+  user: User | null;
+  onUserUpdate?: (user: User) => void;
 }
 
-const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onNavigate, onNext }) => {
-  const [goal, setGoal] = useState(6000);
+const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onNavigate, user, onUserUpdate }) => {
+  const [goal, setGoal] = useState(user?.dailyStepGoal || 6000);
+  const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<number | null>(null);
 
@@ -151,16 +153,36 @@ const GoalSettingScreen: React.FC<GoalSettingScreenProps> = ({ onNavigate, onNex
         <footer className="px-8 pb-8 pt-4">
           <button
             type="button"
-            onClick={() => {
-              if (onNext) {
-                onNext();
-              } else if (onNavigate) {
+            onClick={async () => {
+              if (!user || !user.id) {
                 onNavigate('home');
+                return;
+              }
+              
+              setIsLoading(true);
+              try {
+                const updatedUser = await apiService.updateUser(user.id, {
+                  dailyStepGoal: goal
+                });
+                
+                if (onUserUpdate) {
+                  onUserUpdate(updatedUser);
+                }
+                
+                localStorage.setItem('athlos_user', JSON.stringify(updatedUser));
+                onNavigate('home');
+              } catch (error) {
+                console.error('Error saving goal:', error);
+                // Navigate anyway on error
+                onNavigate('home');
+              } finally {
+                setIsLoading(false);
               }
             }}
-            className="w-full max-w-xs mx-auto block py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
+            disabled={isLoading}
+            className="w-full max-w-xs mx-auto block py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Finish Setup
+            {isLoading ? 'Saving...' : 'Finish Setup'}
           </button>
         </footer>
       </div>

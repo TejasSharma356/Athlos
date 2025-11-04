@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 )
 
 echo 📦 Building and starting containers...
-docker-compose up --build -d
+docker-compose up --build -d    
 
 echo ⏳ Waiting for services to start...
 timeout /t 30 /nobreak >nul

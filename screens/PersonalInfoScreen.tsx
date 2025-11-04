@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Screen } from '../types';
 import { ChevronDownIcon } from '../components/icons';
+import { apiService, User } from '../src/services/api';
 
-// Fix: Updated props to accept an optional `onNext` callback to handle navigation within the onboarding flow. `onNavigate` is also made optional.
 interface PersonalInfoScreenProps {
-  onNavigate?: (screen: Screen) => void;
-  onNext?: () => void;
+  onNavigate: (screen: Screen) => void;
+  user: User | null;
+  onUserUpdate?: (user: User) => void;
 }
 
-const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ onNavigate, onNext }) => {
+const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ onNavigate, user, onUserUpdate }) => {
+  const [age, setAge] = useState<number | undefined>(user?.age);
+  const [gender, setGender] = useState<string | undefined>(user?.gender);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false);
+  
+  const genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
   return (
     <div className="relative h-full text-white">
       <div className="absolute inset-0 z-0">
@@ -28,50 +36,56 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ onNavigate, onN
         </header>
         
         <main className="flex-grow overflow-y-auto min-h-0">
+          {error && (
+            <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-center">
+              {error}
+            </div>
+          )}
           <form className="space-y-6 pb-6">
-            <div className="relative">
-              <label className="text-sm font-medium text-gray-400" htmlFor="dob">Date Of Birth</label>
-              <div className="relative">
-                <input 
-                  id="dob" 
-                  type="text" 
-                  className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition appearance-none" 
-                  placeholder="Select date"
-                  readOnly
-                />
-                <ChevronDownIcon className="absolute right-4 top-1/2 -translate-y-1/2 mt-1 w-6 h-6 text-gray-400 pointer-events-none" />
-              </div>
+            <div>
+              <label className="text-sm font-medium text-gray-400" htmlFor="age">Age</label>
+              <input 
+                id="age" 
+                type="number" 
+                value={age || ''}
+                onChange={(e) => setAge(e.target.value ? parseInt(e.target.value) : undefined)}
+                className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
+                placeholder="Enter your age"
+                min="1"
+                max="120"
+              />
             </div>
             <div className="relative">
               <label className="text-sm font-medium text-gray-400" htmlFor="gender">Gender</label>
-               <div className="relative">
-                  <input 
-                    id="gender" 
-                    type="text" 
-                    className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition appearance-none" 
-                    placeholder="Select gender"
-                    readOnly
-                  />
-                  <ChevronDownIcon className="absolute right-4 top-1/2 -translate-y-1/2 mt-1 w-6 h-6 text-gray-400 pointer-events-none" />
-               </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-400" htmlFor="height">Height</label>
-              <input 
-                id="height" 
-                type="number" 
-                className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
-                placeholder="Enter height (cm)"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-400" htmlFor="weight">Weight</label>
-              <input 
-                id="weight" 
-                type="number" 
-                className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition" 
-                placeholder="Enter weight (kg)"
-              />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowGenderDropdown(!showGenderDropdown)}
+                  className="w-full mt-2 p-4 bg-slate-800/80 rounded-lg border border-transparent focus:border-red-500 focus:ring-red-500 transition text-left flex justify-between items-center"
+                >
+                  <span className={gender ? 'text-white' : 'text-gray-400'}>
+                    {gender || 'Select gender'}
+                  </span>
+                  <ChevronDownIcon className={`w-6 h-6 text-gray-400 transition-transform ${showGenderDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showGenderDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 rounded-lg border border-slate-700 shadow-lg">
+                    {genders.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => {
+                          setGender(g);
+                          setShowGenderDropdown(false);
+                        }}
+                        className="w-full p-3 text-left hover:bg-slate-700 first:rounded-t-lg last:rounded-b-lg"
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </form>
         </main>
@@ -79,16 +93,42 @@ const PersonalInfoScreen: React.FC<PersonalInfoScreenProps> = ({ onNavigate, onN
         <footer className="pt-4 pb-8">
           <button 
             type="button"
-            onClick={() => {
-              if (onNext) {
-                onNext();
-              } else if (onNavigate) {
+            onClick={async () => {
+              if (!user || !user.id) {
                 onNavigate('goalsetting');
+                return;
+              }
+              
+              if (!age || !gender) {
+                alert('Please fill in all required fields');
+                return;
+              }
+              
+              setIsLoading(true);
+              setError('');
+              try {
+                const updatedUser = await apiService.updateUser(user.id, {
+                  age: age,
+                  gender: gender
+                });
+                
+                if (onUserUpdate) {
+                  onUserUpdate(updatedUser);
+                }
+                
+                localStorage.setItem('athlos_user', JSON.stringify(updatedUser));
+                onNavigate('goalsetting');
+              } catch (err: any) {
+                console.error('Error saving personal info:', err);
+                setError(err?.message || 'Failed to save. Please try again.');
+              } finally {
+                setIsLoading(false);
               }
             }}
-            className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
+            disabled={isLoading || !age || !gender}
+            className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? 'Saving...' : 'Continue'}
           </button>
         </footer>
       </div>

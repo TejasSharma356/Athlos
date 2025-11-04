@@ -2,6 +2,7 @@ package com.athlos.service;
 
 import com.athlos.dto.PointDTO;
 import com.athlos.dto.RunDTO;
+import com.athlos.dto.LeaderboardEntryDTO;
 import com.athlos.entity.Run;
 import com.athlos.entity.RunPoint;
 import com.athlos.entity.User;
@@ -9,6 +10,7 @@ import com.athlos.repository.RunRepository;
 import com.athlos.repository.UserRepository;
 import org.locationtech.jts.geom.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,12 @@ public class RunService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private LeaderboardService leaderboardService;
     
     private final GeometryFactory geometryFactory = new GeometryFactory();
     
@@ -64,6 +72,15 @@ public class RunService {
             run.setDurationSeconds(java.time.Duration.between(run.getStartTime(), run.getEndTime()).getSeconds());
         }
         
+        // Recalculate final distance and steps
+        double totalDistance = calculateTotalDistance(run);
+        run.setDistanceMeters(totalDistance);
+        
+        // Calculate steps from distance (0.78m per step)
+        final double STEP_LENGTH_METERS = 0.78;
+        int totalSteps = (int) Math.round(totalDistance / STEP_LENGTH_METERS);
+        run.setTotalSteps(totalSteps);
+        
         // Create claimed territory polygon from path
         if (run.getPath() != null && run.getPath().getNumPoints() > 2) {
             Polygon territory = createTerritoryFromPath(run.getPath());
@@ -71,6 +88,10 @@ public class RunService {
         }
         
         run = runRepository.save(run);
+        
+        // Broadcast leaderboard updates
+        broadcastLeaderboardUpdates();
+        
         return convertToDTO(run);
     }
     
@@ -79,21 +100,38 @@ public class RunService {
         
         Point location = geometryFactory.createPoint(new Coordinate(longitude, latitude));
         RunPoint runPoint = new RunPoint(run, location, LocalDateTime.now());
-        runPoint.setStepCount(stepCount);
         
         if (run.getRunPoints() == null) {
             run.setRunPoints(new ArrayList<>());
         }
+        
+        // Calculate distance from previous point
+        double distanceIncrement = 0.0;
+        if (!run.getRunPoints().isEmpty()) {
+            RunPoint lastPoint = run.getRunPoints().get(run.getRunPoints().size() - 1);
+            distanceIncrement = calculateDistance(
+                lastPoint.getLocation().getY(), lastPoint.getLocation().getX(),
+                latitude, longitude
+            );
+        }
+        
+        // Calculate steps from distance (0.78m per step)
+        final double STEP_LENGTH_METERS = 0.78;
+        int calculatedSteps = (int) Math.round(distanceIncrement / STEP_LENGTH_METERS);
+        runPoint.setStepCount(calculatedSteps);
+        
         run.getRunPoints().add(runPoint);
         
         // Update path
         updateRunPath(run);
         
-        // Update total steps
-        if (run.getTotalSteps() == null) {
-            run.setTotalSteps(0);
-        }
-        run.setTotalSteps(run.getTotalSteps() + (stepCount != null ? stepCount : 0));
+        // Calculate total distance from all points
+        double totalDistance = calculateTotalDistance(run);
+        run.setDistanceMeters(totalDistance);
+        
+        // Calculate total steps from distance
+        int totalSteps = (int) Math.round(totalDistance / STEP_LENGTH_METERS);
+        run.setTotalSteps(totalSteps);
         
         run = runRepository.save(run);
         return convertToDTO(run);
@@ -122,6 +160,40 @@ public class RunService {
             LineString path = geometryFactory.createLineString(coordinates);
             run.setPath(path);
         }
+    }
+    
+    /**
+     * Calculate distance between two GPS coordinates using Haversine formula
+     */
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371000; // Earth radius in meters
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+    
+    /**
+     * Calculate total distance from all run points
+     */
+    private double calculateTotalDistance(Run run) {
+        if (run.getRunPoints() == null || run.getRunPoints().size() < 2) {
+            return 0.0;
+        }
+        
+        double totalDistance = 0.0;
+        for (int i = 1; i < run.getRunPoints().size(); i++) {
+            RunPoint prev = run.getRunPoints().get(i - 1);
+            RunPoint curr = run.getRunPoints().get(i);
+            totalDistance += calculateDistance(
+                prev.getLocation().getY(), prev.getLocation().getX(),
+                curr.getLocation().getY(), curr.getLocation().getX()
+            );
+        }
+        return totalDistance;
     }
     
     private Polygon createTerritoryFromPath(LineString path) {
@@ -189,6 +261,22 @@ public class RunService {
         }
         
         return dto;
+    }
+    
+    private void broadcastLeaderboardUpdates() {
+        try {
+            // Get fresh leaderboard data
+            List<LeaderboardEntryDTO> dailyLeaderboard = leaderboardService.getDailyLeaderboard();
+            List<LeaderboardEntryDTO> weeklyLeaderboard = leaderboardService.getWeeklyLeaderboard();
+            List<LeaderboardEntryDTO> allTimeLeaderboard = leaderboardService.getAllTimeLeaderboard();
+            
+            // Broadcast to all connected clients
+            messagingTemplate.convertAndSend("/topic/leaderboard/daily", dailyLeaderboard);
+            messagingTemplate.convertAndSend("/topic/leaderboard/weekly", weeklyLeaderboard);
+            messagingTemplate.convertAndSend("/topic/leaderboard/all-time", allTimeLeaderboard);
+        } catch (Exception e) {
+            System.err.println("Error broadcasting leaderboard updates: " + e.getMessage());
+        }
     }
 }
 

@@ -1,19 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Screen } from '../types';
 import { ChevronLeftIcon } from '../components/icons';
+import { apiService, User } from '../src/services/api';
+import { Avatar } from '../components/Avatar';
 
 interface EditProfileScreenProps {
   onNavigate: (screen: Screen) => void;
+  user: User | null;
+  onUserUpdate?: (user: User) => void;
 }
 
-const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => {
-  const [fullName, setFullName] = useState('Alex Johnson');
-  const [email, setEmail] = useState('alex.j@example.com');
+const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate, user, onUserUpdate }) => {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSaveChanges = () => {
-    // In a real app, you'd save this data
-    console.log('Saving profile:', { fullName, email });
-    onNavigate('profile'); // Navigate back to profile after saving
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
+
+  const handleSaveChanges = async () => {
+    if (!user || !user.id) {
+      setError('No user found');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const updatedUser = await apiService.updateUser(user.id, {
+        name: fullName,
+        email: email,
+      });
+      
+      // Update user in parent component
+      if (onUserUpdate) {
+        onUserUpdate(updatedUser);
+      }
+      
+      // Update localStorage
+      localStorage.setItem('athlos_user', JSON.stringify(updatedUser));
+      
+      onNavigate('profile');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save changes. Please try again.');
+      console.error('Error saving profile:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,20 +79,17 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => 
 
         <main className="flex-grow p-6 overflow-y-auto">
           <section className="flex flex-col items-center text-center mb-8">
-            <div className="relative">
-              <img 
-                src="https://picsum.photos/seed/user/128/128" 
-                alt="User Avatar" 
-                className="w-24 h-24 rounded-full mb-2 border-4 border-slate-700"
-              />
-              <button className="absolute bottom-2 -right-1 bg-red-600 p-2 rounded-full hover:bg-red-700 transition">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L14.732 3.732z"></path></svg>
-              </button>
+            <div className="mb-4">
+              <Avatar name={user?.name} size={96} />
             </div>
-            <button className="mt-2 text-red-400 font-semibold hover:underline">
-              Change Photo
-            </button>
+            <p className="text-sm text-gray-400">Avatar shows your initials</p>
           </section>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-600/20 border border-red-600 rounded-lg text-red-400 text-center">
+              {error}
+            </div>
+          )}
 
           <form className="space-y-6">
             <div>
@@ -84,9 +120,10 @@ const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ onNavigate }) => 
         <footer className="p-6">
           <button 
             onClick={handleSaveChanges}
-            className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors"
+            disabled={isLoading}
+            className="w-full py-4 bg-red-600 rounded-lg font-semibold text-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {isLoading ? 'Saving...' : 'Save Changes'}
           </button>
         </footer>
       </div>
